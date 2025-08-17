@@ -10,11 +10,11 @@ public class TurnManager : MonoBehaviour
 
     // ⏱ Adjustable delays in seconds
     [Header("Action Delays (seconds)")]
-    public float moveDelay = 0.30f;
-    public float attackDelay = 0.60f;
-    public float spellDelay = 0.60f;   // separate in case you want it different to attack
-    public float healDelay = 0.50f;
-    public float waitDelay = 0.20f;
+    public float moveDelay = 2.30f;
+    public float attackDelay = 2.60f;
+    public float spellDelay = 2.60f;   
+    public float healDelay = 2.50f;
+    public float waitDelay = 2.20f;
 
     private Queue<Unit> roundOrder = new Queue<Unit>();
     private bool roundActive = false;

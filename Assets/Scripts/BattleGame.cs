@@ -27,104 +27,72 @@ public class BattleGame : MonoBehaviour
             return;
         }
 
+        // Ensure a CombatLog exists (defensive)
+        if (FindFirstObjectByType<CombatLog>() == null)
+            new GameObject("CombatLog", typeof(CombatLog));
+
         var spawned = new List<Unit>();
 
-        // ---------- PLAYERS ----------
-        var warrior = SpawnUnit(
-            prefab: playerPrefab, pos: new Vector3(-3, 0, 0), name: "Warrior",
-            hp: 36, ac: 16, dmg: (1, 8), dmgBonus: 0,
-            canHeal: false, actions: 1,
-            isRanged: false,
-            abilities: (str: 16, dex: 12, con: 14, intel: 8, wis: 10, cha: 10),
-            cls: ClassId.Fighter
-        );
-        // Fighter (martial): Longsword + Shield (melee)
-        EquipWeapon(warrior, "longsword", twoHands: false, shield: true);
-        PostSpawnClassSetup(warrior);
-        spawned.Add(warrior);
+        // 1) Spawn heroes from HeroesDB
+        foreach (var hero in HeroesDB.DefaultParty)
+        {
+            var u = SpawnUnit(
+                prefab: playerPrefab,
+                pos: hero.spawnOffset,
+                name: hero.name,
+                hp: hero.maxHP,
+                ac: hero.armourClass,
+                dmg: (1, 6), dmgBonus: 0, // will be overridden by EquipWeapon
+                canHeal: false, actions: 1,
+                heal: null, healThresh: 0.4f,
+                isRanged: hero.isRanged,
+                abilities: (hero.str, hero.dex, hero.con, hero.intel, hero.wis, hero.cha),
+                cls: hero.cls
+            );
+            // Level/proficiency
+            u.baseStats.proficiencyBonus = SpellRules.ProficiencyForLevel(hero.level);
+            // Load class spells then cap by level
+            PostSpawnClassSetup(u);
+            u.baseStats.knownSpells = SpellRules.TrimToCaps(u.baseStats.classId, hero.level, u.baseStats.knownSpells ?? new List<KnownSpell>());
+            // Weapon/armour
+            EquipWeapon(u, hero.weaponId, hero.twoHands, hero.shield);
+            spawned.Add(u);
+        }
 
-        var cleric = SpawnUnit(
-            prefab: playerPrefab, pos: new Vector3(-3, 0, 2), name: "Cleric",
-            hp: 28, ac: 15, dmg: (1, 6), dmgBonus: 0,
-            canHeal: true, actions: 1, heal: (1, 8), healThresh: 0.45f,
-            isRanged: false,
-            abilities: (str: 14, dex: 10, con: 14, intel: 10, wis: 14, cha: 12),
-            cls: ClassId.Cleric
-        );
-        // Cleric (WIS caster). Weapon 50/50 Warhammer or Morningstar + Shield.
-        EquipWeapon(cleric, Random.value < 0.5f ? "warhammer" : "morningstar", twoHands: false, shield: true);
-        PostSpawnClassSetup(cleric);
-        spawned.Add(cleric);
+        // 2) Spawn encounter by ID
+        var encId = "undead-army-1"; // choose from a menu later
+        if (!EncounterDB.All.TryGetValue(encId, out var enc))
+        {
+            Debug.LogError($"Encounter '{encId}' not found.");
+            return;
+        }
 
-        var rogue = SpawnUnit(
-            prefab: playerPrefab, pos: new Vector3(-3, 0, -2), name: "Rogue",
-            hp: 24, ac: 14, dmg: (1, 8), dmgBonus: 0,
-            canHeal: false, actions: 1,
-            isRanged: false,
-            abilities: (str: 10, dex: 16, con: 12, intel: 12, wis: 10, cha: 14),
-            cls: ClassId.Rogue
-        );
-        // Rogue (Arcane Trickster flavour): 50/50 Rapier (finesse) or Shortbow (ranged)
-        EquipWeapon(rogue, Random.value < 0.5f ? "rapier" : "shortbow");
-        PostSpawnClassSetup(rogue);
-        spawned.Add(rogue);
+        foreach (var e in enc.enemies)
+        {
+            var u = SpawnUnit(
+                prefab: enemyPrefab,
+                pos: e.spawnOffset,
+                name: e.name,
+                hp: e.maxHP,
+                ac: e.armourClass,
+                dmg: (1, 6), dmgBonus: 0,
+                canHeal: e.canHeal, actions: 1,
+                heal: e.healDice, healThresh: e.healThreshold,
+                isRanged: e.isRanged,
+                abilities: (e.str, e.dex, e.con, e.intel, e.wis, e.cha),
+                cls: e.cls
+            );
+            u.baseStats.proficiencyBonus = SpellRules.ProficiencyForLevel(e.level);
+            PostSpawnClassSetup(u);
+            u.baseStats.knownSpells = SpellRules.TrimToCaps(u.baseStats.classId, e.level, u.baseStats.knownSpells ?? new List<KnownSpell>());
+            EquipWeapon(u, e.weaponId, e.twoHands, e.shield);
+            spawned.Add(u);
+        }
 
-        var sorcerer = SpawnUnit(
-            prefab: playerPrefab, pos: new Vector3(-3, 0, 4), name: "Sorcerer",
-            hp: 22, ac: 13, dmg: (1, 4), dmgBonus: 0,
-            canHeal: false, actions: 1,
-            isRanged: true,
-            abilities: (str: 8, dex: 14, con: 14, intel: 10, wis: 10, cha: 16),
-            cls: ClassId.Sorcerer
-        );
-        // Sorcerer (CHA caster). Dagger as fallback when engaged.
-        EquipWeapon(sorcerer, "dagger");
-        PostSpawnClassSetup(sorcerer);
-        spawned.Add(sorcerer);
-
-        // ---------- ENEMIES ----------
-        var skelA = SpawnUnit(
-            prefab: enemyPrefab, pos: new Vector3(3, 0, 0), name: "Skeleton A",
-            hp: 18, ac: 12, dmg: (1, 6), dmgBonus: 0,
-            canHeal: false, actions: 1,
-            isRanged: false,
-            abilities: (str: 12, dex: 12, con: 10, intel: 6, wis: 8, cha: 5),
-            cls: ClassId.Fighter
-        );
-        EquipWeapon(skelA, "shortsword");
-        PostSpawnClassSetup(skelA);
-        spawned.Add(skelA);
-
-        var skelB = SpawnUnit(
-            prefab: enemyPrefab, pos: new Vector3(3, 0, 2), name: "Skeleton B",
-            hp: 18, ac: 12, dmg: (1, 6), dmgBonus: 0,
-            canHeal: false, actions: 1,
-            isRanged: false,
-            abilities: (str: 12, dex: 12, con: 10, intel: 6, wis: 8, cha: 5),
-            cls: ClassId.Fighter
-        );
-        EquipWeapon(skelB, "shortsword");
-        PostSpawnClassSetup(skelB);
-        spawned.Add(skelB);
-
-        var necro = SpawnUnit(
-            prefab: enemyPrefab, pos: new Vector3(3, 0, -2), name: "Necromancer",
-            hp: 22, ac: 12, dmg: (1, 8), dmgBonus: 0,
-            canHeal: true, actions: 1, heal: (1, 6), healThresh: 0.5f,
-            isRanged: true,
-            abilities: (str: 8, dex: 14, con: 10, intel: 16, wis: 12, cha: 12),
-            cls: ClassId.Wizard
-        );
-        // INT caster. Weapon: 50/50 Dagger or Heavy Crossbow.
-        EquipWeapon(necro, Random.value < 0.5f ? "dagger" : "heavy-xbow");
-        PostSpawnClassSetup(necro);
-        spawned.Add(necro);
-
-        // ---------- Init + Start ----------
+        // 3) Init + start
         foreach (var u in spawned) u.Init();
-
         turnManager.RegisterUnits(spawned);
-        CombatLog.Print("Battle start.");
+        CombatLog.Print($"Battle start: Loaded '{enc.title}'.");
         turnManager.StartBattle();
     }
 
