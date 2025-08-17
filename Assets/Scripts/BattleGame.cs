@@ -35,10 +35,12 @@ public class BattleGame : MonoBehaviour
             hp: 36, ac: 16, dmg: (1, 8), dmgBonus: 0,
             canHeal: false, actions: 1,
             isRanged: false,
-            abilities: (str: 16, dex: 12, con: 14, intel: 8, wis: 10, cha: 10)
+            abilities: (str: 16, dex: 12, con: 14, intel: 8, wis: 10, cha: 10),
+            cls: ClassId.Fighter
         );
-        // Warrior: Longsword + Shield (melee)
+        // Fighter (martial): Longsword + Shield (melee)
         EquipWeapon(warrior, "longsword", twoHands: false, shield: true);
+        PostSpawnClassSetup(warrior);
         spawned.Add(warrior);
 
         var cleric = SpawnUnit(
@@ -46,13 +48,12 @@ public class BattleGame : MonoBehaviour
             hp: 28, ac: 15, dmg: (1, 6), dmgBonus: 0,
             canHeal: true, actions: 1, heal: (1, 8), healThresh: 0.45f,
             isRanged: false,
-            abilities: (str: 14, dex: 10, con: 14, intel: 10, wis: 14, cha: 12)
+            abilities: (str: 14, dex: 10, con: 14, intel: 10, wis: 14, cha: 12),
+            cls: ClassId.Cleric
         );
-        // Cleric is a caster (WIS). Weapon 50/50 Warhammer or Morningstar + Shield.
-        cleric.baseStats.isCaster = true;
-        cleric.baseStats.castingAbility = CastingAbility.WIS;
-        if (Random.value < 0.5f) EquipWeapon(cleric, "warhammer", twoHands: false, shield: true);
-        else EquipWeapon(cleric, "morningstar", twoHands: false, shield: true);
+        // Cleric (WIS caster). Weapon 50/50 Warhammer or Morningstar + Shield.
+        EquipWeapon(cleric, Random.value < 0.5f ? "warhammer" : "morningstar", twoHands: false, shield: true);
+        PostSpawnClassSetup(cleric);
         spawned.Add(cleric);
 
         var rogue = SpawnUnit(
@@ -60,24 +61,25 @@ public class BattleGame : MonoBehaviour
             hp: 24, ac: 14, dmg: (1, 8), dmgBonus: 0,
             canHeal: false, actions: 1,
             isRanged: false,
-            abilities: (str: 10, dex: 16, con: 12, intel: 12, wis: 10, cha: 14)
+            abilities: (str: 10, dex: 16, con: 12, intel: 12, wis: 10, cha: 14),
+            cls: ClassId.Rogue
         );
-        // Rogue: 50/50 Rapier (finesse melee) or Shortbow (ranged)
-        if (Random.value < 0.5f) EquipWeapon(rogue, "rapier");
-        else EquipWeapon(rogue, "shortbow");
+        // Rogue (Arcane Trickster flavour): 50/50 Rapier (finesse) or Shortbow (ranged)
+        EquipWeapon(rogue, Random.value < 0.5f ? "rapier" : "shortbow");
+        PostSpawnClassSetup(rogue);
         spawned.Add(rogue);
 
-        // Sorcerer: CHA caster. Dagger as fallback weapon.
         var sorcerer = SpawnUnit(
             prefab: playerPrefab, pos: new Vector3(-3, 0, 4), name: "Sorcerer",
             hp: 22, ac: 13, dmg: (1, 4), dmgBonus: 0,
             canHeal: false, actions: 1,
             isRanged: true,
-            abilities: (str: 8, dex: 14, con: 14, intel: 10, wis: 10, cha: 16)
+            abilities: (str: 8, dex: 14, con: 14, intel: 10, wis: 10, cha: 16),
+            cls: ClassId.Sorcerer
         );
-        sorcerer.baseStats.isCaster = true;
-        sorcerer.baseStats.castingAbility = CastingAbility.CHA;
-        EquipWeapon(sorcerer, "dagger"); // backup if engaged in melee
+        // Sorcerer (CHA caster). Dagger as fallback when engaged.
+        EquipWeapon(sorcerer, "dagger");
+        PostSpawnClassSetup(sorcerer);
         spawned.Add(sorcerer);
 
         // ---------- ENEMIES ----------
@@ -86,9 +88,11 @@ public class BattleGame : MonoBehaviour
             hp: 18, ac: 12, dmg: (1, 6), dmgBonus: 0,
             canHeal: false, actions: 1,
             isRanged: false,
-            abilities: (str: 12, dex: 12, con: 10, intel: 6, wis: 8, cha: 5)
+            abilities: (str: 12, dex: 12, con: 10, intel: 6, wis: 8, cha: 5),
+            cls: ClassId.Fighter
         );
         EquipWeapon(skelA, "shortsword");
+        PostSpawnClassSetup(skelA);
         spawned.Add(skelA);
 
         var skelB = SpawnUnit(
@@ -96,9 +100,11 @@ public class BattleGame : MonoBehaviour
             hp: 18, ac: 12, dmg: (1, 6), dmgBonus: 0,
             canHeal: false, actions: 1,
             isRanged: false,
-            abilities: (str: 12, dex: 12, con: 10, intel: 6, wis: 8, cha: 5)
+            abilities: (str: 12, dex: 12, con: 10, intel: 6, wis: 8, cha: 5),
+            cls: ClassId.Fighter
         );
         EquipWeapon(skelB, "shortsword");
+        PostSpawnClassSetup(skelB);
         spawned.Add(skelB);
 
         var necro = SpawnUnit(
@@ -106,13 +112,12 @@ public class BattleGame : MonoBehaviour
             hp: 22, ac: 12, dmg: (1, 8), dmgBonus: 0,
             canHeal: true, actions: 1, heal: (1, 6), healThresh: 0.5f,
             isRanged: true,
-            abilities: (str: 8, dex: 14, con: 10, intel: 16, wis: 12, cha: 12)
+            abilities: (str: 8, dex: 14, con: 10, intel: 16, wis: 12, cha: 12),
+            cls: ClassId.Wizard
         );
-        // Necromancer is a caster (INT). Weapon: 50/50 Dagger or Heavy Crossbow.
-        necro.baseStats.isCaster = true;
-        necro.baseStats.castingAbility = CastingAbility.INT;
-        if (Random.value < 0.5f) EquipWeapon(necro, "dagger");
-        else EquipWeapon(necro, "heavy-xbow");
+        // INT caster. Weapon: 50/50 Dagger or Heavy Crossbow.
+        EquipWeapon(necro, Random.value < 0.5f ? "dagger" : "heavy-xbow");
+        PostSpawnClassSetup(necro);
         spawned.Add(necro);
 
         // ---------- Init + Start ----------
@@ -130,7 +135,8 @@ public class BattleGame : MonoBehaviour
         (int, int) dmg, int dmgBonus, bool canHeal, int actions,
         (int, int)? heal = null, float healThresh = 0.4f,
         bool isRanged = false,
-        (int str, int dex, int con, int intel, int wis, int cha)? abilities = null)
+        (int str, int dex, int con, int intel, int wis, int cha)? abilities = null,
+        ClassId cls = ClassId.Fighter)
     {
         var go = Instantiate(prefab, pos, Quaternion.identity);
         var unit = go.GetComponent<Unit>() ?? go.AddComponent<Unit>();
@@ -163,10 +169,13 @@ public class BattleGame : MonoBehaviour
             @int = a.intel,
             wis = a.wis,
             cha = a.cha,
+
             isRanged = isRanged,
             proficiencyBonus = 2,
             finesse = false,
-            usingTwoHands = false
+            usingTwoHands = false,
+
+            classId = cls
         };
 
         unit.isPlayerControlled = (prefab == playerPrefab);
@@ -176,6 +185,35 @@ public class BattleGame : MonoBehaviour
         uiRoot.transform.SetParent(unit.transform, false);
 
         return unit;
+    }
+
+    // Load class spellbook & casting ability after basic stats are set (and after weapon equip).
+    void PostSpawnClassSetup(Unit unit)
+    {
+        // Load per-class spell list
+        var list = Spellbooks.For(unit.baseStats.classId);
+        unit.baseStats.knownSpells = new List<KnownSpell>(list);
+        unit.baseStats.isCaster = unit.baseStats.knownSpells.Count > 0;
+
+        // Choose casting ability by class
+        switch (unit.baseStats.classId)
+        {
+            case ClassId.Cleric:
+            case ClassId.Druid:
+            case ClassId.Paladin:
+                unit.baseStats.castingAbility = CastingAbility.WIS; break;
+            case ClassId.Bard:
+            case ClassId.Sorcerer:
+            case ClassId.Warlock:
+                unit.baseStats.castingAbility = CastingAbility.CHA; break;
+            case ClassId.Wizard:
+            case ClassId.Artificer:
+            case ClassId.Rogue:   // Arcane Trickster
+            case ClassId.Fighter: // Eldritch Knight
+                unit.baseStats.castingAbility = CastingAbility.INT; break;
+            default:
+                unit.baseStats.castingAbility = CastingAbility.None; break;
+        }
     }
 
     // Equip a weapon and apply AC/damage bonus rules
@@ -203,5 +241,9 @@ public class BattleGame : MonoBehaviour
         // Shield: simple +2 AC if melee & using a shield
         if (shield && !s.isRanged)
             s.armourClass += 2;
+
+        // Store weapon name shown in logs/labels (WeaponDB already sets weaponId & name if you added that)
+        s.weaponId = weaponId;
+        if (WeaponDB.All.TryGetValue(weaponId, out var w)) s.weaponName = w.name;
     }
 }

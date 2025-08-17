@@ -2,15 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-// Keep this enum somewhere shared if you prefer.
-public enum AIActionType
-{
-    Attack,
-    CastSpell,
-    Heal,
-    Move,
-    Wait
-}
+
 
 public class TurnManager : MonoBehaviour
 {

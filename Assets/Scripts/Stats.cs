@@ -1,6 +1,13 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 public enum CastingAbility { None, STR, DEX, CON, INT, WIS, CHA }
+
+// Optional: your class enum lives in Classes/ClassId.cs
+// public enum ClassId { Barbarian, Bard, Cleric, Druid, Fighter, Monk, Paladin, Ranger, Rogue, Sorcerer, Warlock, Wizard, Artificer }
+
+// Optional: KnownSpell struct lives in Classes/SpellList.cs
+// public struct KnownSpell { public string id; public int level; public KnownSpell(string id,int level){ this.id=id; this.level=level; } }
 
 [System.Serializable]
 public class Stats
@@ -49,6 +56,10 @@ public class Stats
     [Header("Casting")]
     public bool isCaster = false;
     public CastingAbility castingAbility = CastingAbility.None;
+
+    [Header("Class & Spellbook")]
+    public ClassId classId = ClassId.Fighter;     // set when spawning the unit
+    [System.NonSerialized] public List<KnownSpell> knownSpells; // filled from class spell list at spawn
 
     // ---------- Helpers ----------
     public static int Mod(int score) => Mathf.FloorToInt((score - 10) / 2f);
