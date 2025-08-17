@@ -126,3 +126,44 @@ public static class SpellRules
     public static int ProficiencyForLevel(int level) =>
         Mathf.Clamp(2 + (Mathf.Max(level, 1) - 1) / 4, 2, 6);
 }
+
+public static class SpellRulesExtensions
+{
+    // 5e cantrip tiers: levels 1–4 -> x1, 5–10 -> x2, 11–16 -> x3, 17+ -> x4
+    public static int CantripTier(int characterLevel)
+    {
+        if (characterLevel >= 17) return 4;
+        if (characterLevel >= 11) return 3;
+        if (characterLevel >= 5) return 2;
+        return 1;
+    }
+
+    // Rough “effective slot” for full-casters by level; half/third casters trail.
+    // This is a simple mapping to give your AI stronger casts at higher levels.
+    public static int EstimatedSlotLevel(ClassId cls, int characterLevel)
+    {
+        var prog = SpellRules.ProgressionFor(cls);
+        int baseSlot =
+            characterLevel switch
+            {
+                >= 17 => 9,
+                >= 15 => 8,
+                >= 13 => 7,
+                >= 11 => 6,
+                >= 9 => 5,
+                >= 7 => 4,
+                >= 5 => 3,
+                >= 3 => 2,
+                _ => 1
+            };
+
+        // Half casters lag ~2 levels of slot power; third casters lag ~3
+        return prog switch
+        {
+            CasterProgression.Full => baseSlot,
+            CasterProgression.Half => Mathf.Clamp(baseSlot - 2, 1, 9),
+            CasterProgression.Third => Mathf.Clamp(baseSlot - 3, 1, 9),
+            _ => 1
+        };
+    }
+}

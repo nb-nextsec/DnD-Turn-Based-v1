@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿// using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(TurnManager))]
@@ -6,10 +7,8 @@ public class BattleGame : MonoBehaviour
 {
     [SerializeField] private TurnManager turnManager;
 
-
     [Header("Encounter Selection")]
     [SerializeField] private string encounterId = "undead-army-1";
-
 
     [Header("Prefabs")]
     public GameObject playerPrefab;
@@ -32,13 +31,13 @@ public class BattleGame : MonoBehaviour
             return;
         }
 
-        // Ensure a CombatLog exists (defensive)
+        // Defensive: ensure CombatLog exists
         if (FindFirstObjectByType<CombatLog>() == null)
             new GameObject("CombatLog", typeof(CombatLog));
 
         var spawned = new List<Unit>();
 
-        // 1) Spawn heroes from HeroesDB
+        // ---------- 1) Spawn heroes from HeroesDB ----------
         foreach (var hero in HeroesDB.DefaultParty)
         {
             var u = SpawnUnit(
@@ -47,24 +46,35 @@ public class BattleGame : MonoBehaviour
                 name: hero.name,
                 hp: hero.maxHP,
                 ac: hero.armourClass,
-                dmg: (1, 6), dmgBonus: 0, // will be overridden by EquipWeapon
+                dmg: (1, 6), dmgBonus: 0, // weapon will override
                 canHeal: false, actions: 1,
                 heal: null, healThresh: 0.4f,
                 isRanged: hero.isRanged,
                 abilities: (hero.str, hero.dex, hero.con, hero.intel, hero.wis, hero.cha),
                 cls: hero.cls
             );
-            // Level/proficiency
+
+            // Class & level for scaling
+            u.baseStats.classId = hero.cls;
+            u.baseStats.level   = hero.level;
+
+            // Proficiency from level
             u.baseStats.proficiencyBonus = SpellRules.ProficiencyForLevel(hero.level);
-            // Load class spells then cap by level
+
+            // Load class spell list + choose casting ability via your helper
             PostSpawnClassSetup(u);
-            u.baseStats.knownSpells = SpellRules.TrimToCaps(u.baseStats.classId, hero.level, u.baseStats.knownSpells ?? new List<KnownSpell>());
-            // Weapon/armour
+
+            // Trim known spells to level caps
+            u.baseStats.knownSpells = SpellRules.TrimToCaps(
+                u.baseStats.classId, hero.level, u.baseStats.knownSpells ?? new List<KnownSpell>());
+
+            // Weapons / armour
             EquipWeapon(u, hero.weaponId, hero.twoHands, hero.shield);
+
             spawned.Add(u);
         }
 
-        // 2) Spawn encounter by ID
+        // ---------- 2) Spawn encounter by ID ----------
         var encId = string.IsNullOrEmpty(encounterId) ? "undead-army-1" : encounterId;
         if (!EncounterDB.All.TryGetValue(encId, out var enc))
         {
@@ -87,14 +97,28 @@ public class BattleGame : MonoBehaviour
                 abilities: (e.str, e.dex, e.con, e.intel, e.wis, e.cha),
                 cls: e.cls
             );
+
+            // Class & level for scaling
+            u.baseStats.classId = e.cls;
+            u.baseStats.level   = e.level;
+
+            // Proficiency from level
             u.baseStats.proficiencyBonus = SpellRules.ProficiencyForLevel(e.level);
+
+            // Load class spell list + choose casting ability via your helper
             PostSpawnClassSetup(u);
-            u.baseStats.knownSpells = SpellRules.TrimToCaps(u.baseStats.classId, e.level, u.baseStats.knownSpells ?? new List<KnownSpell>());
+
+            // Trim known spells to level caps
+            u.baseStats.knownSpells = SpellRules.TrimToCaps(
+                u.baseStats.classId, e.level, u.baseStats.knownSpells ?? new List<KnownSpell>());
+
+            // Weapon & armour
             EquipWeapon(u, e.weaponId, e.twoHands, e.shield);
+
             spawned.Add(u);
         }
 
-        // 3) Init + start
+        // ---------- 3) Init + start ----------
         foreach (var u in spawned) u.Init();
         turnManager.RegisterUnits(spawned);
         CombatLog.Print($"Battle start: Loaded '{enc.title}'.");
@@ -123,7 +147,7 @@ public class BattleGame : MonoBehaviour
             armourClass = ac,
 
             damage = new Vector2Int(dmg.Item1, dmg.Item2), // overridden by EquipWeapon
-            damageBonus = dmgBonus,                        // set from ability mod below
+            damageBonus = dmgBonus,                        // will be set from ability mod below
 
             attackRange = isRanged ? 6.5f : 2.2f,
             actionsPerTurn = actions,
@@ -149,6 +173,7 @@ public class BattleGame : MonoBehaviour
             usingTwoHands = false,
 
             classId = cls
+            // level is assigned after spawn from hero/enemy defs
         };
 
         unit.isPlayerControlled = (prefab == playerPrefab);
@@ -160,7 +185,7 @@ public class BattleGame : MonoBehaviour
         return unit;
     }
 
-    // Load class spellbook & casting ability after basic stats are set (and after weapon equip).
+    // Load class spellbook & casting ability after basic stats are set.
     void PostSpawnClassSetup(Unit unit)
     {
         // Load per-class spell list
@@ -215,7 +240,7 @@ public class BattleGame : MonoBehaviour
         if (shield && !s.isRanged)
             s.armourClass += 2;
 
-        // Store weapon name shown in logs/labels (WeaponDB already sets weaponId & name if you added that)
+        // Store weapon name for logs/labels
         s.weaponId = weaponId;
         if (WeaponDB.All.TryGetValue(weaponId, out var w)) s.weaponName = w.name;
     }

@@ -59,6 +59,8 @@ public class Stats
 
     [Header("Class & Spellbook")]
     public ClassId classId = ClassId.Fighter;     // set when spawning the unit
+    // Identity / progression
+    public int level = 5;
     [System.NonSerialized] public List<KnownSpell> knownSpells; // filled from class spell list at spawn
 
     // ---------- Helpers ----------

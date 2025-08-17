@@ -261,4 +261,33 @@ public static class CombatResolver
 
     // ---------- Dist ----------
     public static float Distance(Unit a, Unit b) => Vector3.Distance(a.transform.position, b.transform.position);
+
+
+    static void GetScaledParams(Unit caster, SpellDef def,
+                            out int diceCount, out int diceSides, out int flat, out int darts)
+    {
+        diceCount = def.diceCount;
+        diceSides = def.diceSides;
+        flat = def.flatBonus;
+        darts = def.darts;
+
+        // Cantrip scaling
+        if (def.level == 0 && def.cantripScalesDice)
+        {
+            int tier = SpellRulesExtensions.CantripTier(caster.baseStats.level);
+            diceCount *= Mathf.Max(1, tier);
+        }
+
+        // Slot scaling (leveled spells)
+        if (def.level >= 1 && def.scalesWithSlot)
+        {
+            int slot = SpellRulesExtensions.EstimatedSlotLevel(caster.baseStats.classId, caster.baseStats.level);
+            int above = Mathf.Max(0, slot - 1);
+
+            if (def.extraDartsPerSlot != 0) darts += def.extraDartsPerSlot * above;
+            if (def.extraDicePerSlot != 0) diceCount += def.extraDicePerSlot * above;
+            if (def.extraFlatPerSlot != 0) flat += def.extraFlatPerSlot * above;
+        }
+    }
+
 }
