@@ -6,6 +6,11 @@ public class BattleGame : MonoBehaviour
 {
     [SerializeField] private TurnManager turnManager;
 
+
+    [Header("Encounter Selection")]
+    [SerializeField] private string encounterId = "undead-army-1";
+
+
     [Header("Prefabs")]
     public GameObject playerPrefab;
     public GameObject enemyPrefab;
@@ -60,7 +65,7 @@ public class BattleGame : MonoBehaviour
         }
 
         // 2) Spawn encounter by ID
-        var encId = "undead-army-1"; // choose from a menu later
+        var encId = string.IsNullOrEmpty(encounterId) ? "undead-army-1" : encounterId;
         if (!EncounterDB.All.TryGetValue(encId, out var enc))
         {
             Debug.LogError($"Encounter '{encId}' not found.");
